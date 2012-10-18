@@ -40,14 +40,14 @@ typedef struct _MosquittoData {
 
 typedef struct mosquitto_cfg {
   char* broker;
-  int port;
+  char* port;
 } mosquitto_cfg ;
 
 static const command_rec mosquitto_cmds[] = {
-  AP_INIT_TAKE1("Broker", ap_set_string_slot,
+  AP_INIT_TAKE1("MosBroker", ap_set_string_slot,
 	(void*) APR_OFFSETOF(mosquitto_cfg, broker), ACCESS_CONF,
 	"Broker") ,
-  AP_INIT_TAKE1("Port", ap_set_int_slot,
+  AP_INIT_TAKE1("MosPort", ap_set_string_slot,
 	(void*) APR_OFFSETOF(mosquitto_cfg, port), ACCESS_CONF,
 	"Port") ,
  	{NULL}	
@@ -59,10 +59,8 @@ static void* mosquitto_create_dir_conf(apr_pool_t* pool, char* x) {
 	mosquitto_cfg* dir = apr_pcalloc(pool, sizeof(mosquitto_cfg));
 
 	dir->broker = "ha-12.dk.eradus.com";
-	dir->port = 1883;
-	
-	ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Broker %d",dir->port);
-	
+	dir->port = "1883";
+
 	return dir ;
 }
 
@@ -127,14 +125,14 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
 		  request_rec *r = server->request(server);
 		  mosquitto_cfg* dir = ap_get_module_config(r->per_dir_config, &mod_websocket_mosquitto) ;
 		  
-		  ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Connect");
+		  ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Connect %s:%s",dir->broker,dir->port);
 			
 		  /* fill in the socket structure with host information */
 		  memset(&pin, 0, sizeof(pin));
 		  pin.sin_family = AF_INET;
-		  hp = gethostbyname("ha-12.dk.eradus.com"); // we need to configure it later
+		  hp = gethostbyname(dir->broker); // we need to configure it later
 		  pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-		  pin.sin_port = htons(1883);
+		  pin.sin_port = htons(atoi(dir->port));
 
 		  /* grab an Internet domain socket */
 		  dib->sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -208,6 +206,17 @@ extern EXPORT WebSocketPlugin * CALLBACK mosquitto_init()
   return &s_plugin;
 }
 
+static int mod_mosquitto_method_handler(request_rec * r)
+{
+    return DECLINED;
+}
+
+static void mod_mosquitto_register_hooks(apr_pool_t * p)
+{
+    ap_hook_handler(mod_mosquitto_method_handler, NULL, NULL,
+                    APR_HOOK_LAST);
+}
+
 
 module AP_MODULE_DECLARE_DATA mod_websocket_mosquitto = {
 	STANDARD20_MODULE_STUFF,
@@ -216,7 +225,7 @@ module AP_MODULE_DECLARE_DATA mod_websocket_mosquitto = {
 	NULL,						/* Create config rec for Host */
 	NULL,						/* Merge config rec for Host */
 	mosquitto_cmds,				/* Configuration directives */
-	NULL
+	mod_mosquitto_register_hooks
 };
 
 
