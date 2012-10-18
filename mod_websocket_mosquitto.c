@@ -23,6 +23,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include "httpd.h"
+#include "http_log.h"
+#include "http_config.h"
 #include "apr_thread_proc.h"
 #include "websocket_plugin.h"
 
@@ -34,6 +36,36 @@ typedef struct _MosquittoData {
   int active;
   int sockfd;
 } MosquittoData;
+
+
+typedef struct mosquitto_cfg {
+  char* broker;
+  int port;
+} mosquitto_cfg ;
+
+static const command_rec mosquitto_cmds[] = {
+  AP_INIT_TAKE1("Broker", ap_set_string_slot,
+	(void*) APR_OFFSETOF(mosquitto_cfg, broker), ACCESS_CONF,
+	"Broker") ,
+  AP_INIT_TAKE1("Port", ap_set_int_slot,
+	(void*) APR_OFFSETOF(mosquitto_cfg, port), ACCESS_CONF,
+	"Port") ,
+ 	{NULL}	
+};
+
+module AP_MODULE_DECLARE_DATA mod_websocket_mosquitto;
+				  
+static void* mosquitto_create_dir_conf(apr_pool_t* pool, char* x) {
+	mosquitto_cfg* dir = apr_pcalloc(pool, sizeof(mosquitto_cfg));
+
+	dir->broker = "ha-12.dk.eradus.com";
+	dir->port = 1883;
+	
+	ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Broker %d",dir->port);
+	
+	return dir ;
+}
+
 
 void* APR_THREAD_FUNC mosquitto_run(apr_thread_t *thread, void *data)
 {
@@ -92,6 +124,11 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
           dib->counter = 0;
           dib->active = 1;
 
+		  request_rec *r = server->request(server);
+		  mosquitto_cfg* dir = ap_get_module_config(r->per_dir_config, &mod_websocket_mosquitto) ;
+		  
+		  ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Connect");
+			
 		  /* fill in the socket structure with host information */
 		  memset(&pin, 0, sizeof(pin));
 		  pin.sin_family = AF_INET;
@@ -167,5 +204,21 @@ static WebSocketPlugin s_plugin = {
 
 extern EXPORT WebSocketPlugin * CALLBACK mosquitto_init()
 {
+  // ap_log_error(APLOG_MARK, APLOG_CRIT, 0,NULL,"mosquitto_init");
   return &s_plugin;
 }
+
+
+module AP_MODULE_DECLARE_DATA mod_websocket_mosquitto = {
+	STANDARD20_MODULE_STUFF,
+	mosquitto_create_dir_conf,	/* Create config rec for Directory */
+	NULL,						/* Merge config rec for Directory */
+	NULL,						/* Create config rec for Host */
+	NULL,						/* Merge config rec for Host */
+	mosquitto_cmds,				/* Configuration directives */
+	NULL
+};
+
+
+
+
