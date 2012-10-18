@@ -34,7 +34,7 @@ typedef struct _MosquittoData {
   apr_thread_t *thread;
   int counter;
   int active;
-  int sockfd;
+  apr_socket_t *sockfd;
 } MosquittoData;
 
 
@@ -73,7 +73,8 @@ void* APR_THREAD_FUNC mosquitto_run(apr_thread_t *thread, void *data)
   if (dib != NULL) {
     /* Keep sending messages as long as the connection is active */
     while (dib->active) {
-      int bread = recv(dib->sockfd,buffer,sizeof(buffer),0);
+	  apr_size_t bread=sizeof(buffer);
+      apr_socket_recv(dib->sockfd,buffer,&bread);
       if (bread && dib->server)
          dib->server->send(dib->server, MESSAGE_TYPE_BINARY, (unsigned char *)buffer,bread);
      else
@@ -86,8 +87,7 @@ void* APR_THREAD_FUNC mosquitto_run(apr_thread_t *thread, void *data)
 void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
 {
   MosquittoData *dib = NULL;
-  struct sockaddr_in pin;
-  struct hostent *hp;
+  apr_sockaddr_t *sa;
 
   if ((server != NULL) && (server->version == WEBSOCKET_SERVER_VERSION_1)) {
     /* Get access to the request_rec strucure for this connection */
@@ -125,20 +125,15 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
 		  request_rec *r = server->request(server);
 		  mosquitto_cfg* dir = ap_get_module_config(r->per_dir_config, &mod_websocket_mosquitto) ;
 		  
-		  ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"Connect %s:%s",dir->broker,dir->port);
+		  int rv = apr_sockaddr_info_get(&sa,dir->broker,APR_INET,atoi(dir->port),0,pool);
+		  if (rv) ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_sockaddr_info_get failed #%x",rv);
 			
-		  /* fill in the socket structure with host information */
-		  memset(&pin, 0, sizeof(pin));
-		  pin.sin_family = AF_INET;
-		  hp = gethostbyname(dir->broker); // we need to configure it later
-		  pin.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-		  pin.sin_port = htons(atoi(dir->port));
-
-		  /* grab an Internet domain socket */
-		  dib->sockfd = socket(AF_INET, SOCK_STREAM, 0);
-          connect(dib->sockfd,(struct sockaddr *)  &pin, sizeof(pin));
-
-
+		  rv = apr_socket_create(&dib->sockfd,APR_INET, SOCK_STREAM, APR_PROTO_TCP,pool);
+		  if (rv) ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_socket_create failed #%x",rv);
+		  
+		  rv = apr_socket_connect(dib->sockfd,sa);
+		  if (rv) ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_socket_connect failed #%x",rv);
+		  			
           /* Create a non-detached thread that will perform the work */
           if ((apr_threadattr_create(&thread_attr, pool) == APR_SUCCESS) &&
               (apr_threadattr_detach_set(thread_attr, 0) == APR_SUCCESS) &&
@@ -163,9 +158,11 @@ static size_t CALLBACK mosquitto_on_message(void *plugin_private, const WebSocke
     const int type, unsigned char *buffer, const size_t buffer_size)
 {
   MosquittoData *dib = (MosquittoData *) plugin_private;
-
+  apr_size_t bwritten;
+	
   if (dib != 0 && dib->sockfd)  // Just pass it on
-	send(dib->sockfd, buffer, buffer_size, 0);
+	bwritten = buffer_size;
+	apr_socket_send(dib->sockfd, (char *)buffer, &bwritten);
   return 0;
 }
 
@@ -180,7 +177,7 @@ void CALLBACK mosquitto_on_disconnect(void *plugin_private, const WebSocketServe
       apr_status_t status;
       /* Wait for the thread to finish */
       status = apr_thread_join(&status, dib->thread);
-      close(dib->sockfd);
+      apr_socket_close(dib->sockfd);
     }
     apr_pool_destroy(dib->pool);
   }
