@@ -1,6 +1,6 @@
 /*
- * Copyright 2011 self.disconnect
- *
+ * Based on an example by self.disconnect
+ * (c) Willem4Ever BV 2012
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -125,10 +125,10 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
 		  request_rec *r = server->request(server);
 		  mosquitto_cfg* dir = ap_get_module_config(r->per_dir_config, &mod_websocket_mosquitto) ;
 		  
-		  int rv = apr_sockaddr_info_get(&sa,dir->broker,APR_INET,atoi(dir->port),0,pool);
+		  int rv = apr_sockaddr_info_get(&sa,dir->broker,APR_UNSPEC,atoi(dir->port),APR_IPV6_ADDR_OK ,pool);
 		  if (rv) ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_sockaddr_info_get failed #%x",rv);
 			
-		  rv = apr_socket_create(&dib->sockfd,APR_INET, SOCK_STREAM, APR_PROTO_TCP,pool);
+		  rv = apr_socket_create(&dib->sockfd,APR_INET6, SOCK_STREAM, APR_PROTO_TCP,pool);
 		  if (rv) ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_socket_create failed #%x",rv);
 		  
 		  rv = apr_socket_connect(dib->sockfd,sa);
