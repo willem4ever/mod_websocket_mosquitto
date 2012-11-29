@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Mosquitto</title>
+
+<style type="text/css">
+table {
+	border: thin outset #60F;
+}
+tr,td {
+	background-color: #FC0;
+	border: thin outset #BBB;
+}
+.buttonx {
+	height: 22px;
+	width: 100px;
+	background-color: #FC0;
+	text-align: center;
+	border-top-style: outset;
+	border-right-style: outset;
+	border-bottom-style: outset;
+	border-left-style: outset;
+	border-top-color: #FC6;
+	border-right-color: #FC6;
+	border-bottom-color: #FC6;
+	border-left-color: #FC6;
+	cursor: pointer;
+	float: none;
+}
+.buttony {
+	height: 22px;
+	width: 184px;
+	background-color: #FC0;
+	text-align: center;
+	border-top-style: outset;
+	border-right-style: outset;
+	border-bottom-style: outset;
+	border-left-style: outset;
+	border-top-color: #FC6;
+	border-right-color: #FC6;
+	border-bottom-color: #FC6;
+	border-left-color: #FC6;
+	float: none;
+}
+.button {
+	background-color: #FC0;
+	float: none;
+}
+
+div#container {
+	height: 50%;
+	width: 50%;
+}
+
+div#header {
+	background-color: #0FF;
+	font-size: 14px;
+}
+div#message {
+	height: 250px;
+	overflow-y: auto;
+	position: relative;
+	width: 100%;
+	background-color: #CCC;
+}
+
+#header {
+	font-family: Comic Sans MS;
+}
+</style>
+
+    <script type='text/javascript' src='http://mosquitto.org/js/mosquitto-1.0.min.js'></script>
+	<script type='text/javascript' src='http://code.jquery.com/jquery-1.8.3.min.js'></script>
+	<script type='text/javascript' src='http://code.jquery.com/ui/1.9.2/jquery-ui.js'></script>
+
+    <script>
+		
+window.onload = function(){
+
+		if (!window.WebSocket) {
+			$("#state").html("<a href=http://websocketstest.com>Websockets are not supported</a?>");
+			}
+			
+		mosq = new Mosquitto();
+
+		mosq.onconnect = function(rc){
+			if (rc == 0) {
+				var state = "Connected to " + url;
+				$("#state").html(state);
+				connected = true;
+				$("#button").html('Disconnect');
+			}
+			
+		};
+		
+		mosq.ondisconnect = function(rc){
+			$("#state").html('Disconnected');
+			$("#button").html('Connect');
+			connected = false;
+			
+		};
+		
+		mosq.onmessage = function(topic, payload, qos){
+			mesgcnt++;
+			var message = Date.now() + " : " + topic + " " + payload + "<br>";
+			$("#message").append(message);
+			message = "Received Messages #"+ mesgcnt;
+			$("#header").html(message);
+		}
+	}
+
+	var url = "";
+	var connected = false;
+	var mesgcnt = 0;
+	
+	function ClearMsg() {
+		$("#message").html("");
+	}
+	
+	function Subscribe () {
+		var topic = $("#subscribe").val();
+		var message = Date.now() + " : Subscribed to " + topic + "<br>";
+		console.log(topic);
+		if (topic.length > 0) {
+			mosq.subscribe(topic,0);
+			$("#message").append(message);
+		}
+	}
+	
+	function Unsubscribe () {
+		var topic = $("#unsubscribe").val();
+		var message = Date.now() +" : Unsubscribed from " + topic + "<br>";
+		console.log(topic);
+		if (topic.length > 0) {
+			mosq.unsubscribe(topic);
+			$("#message").append(message);
+		}
+		
+	}
+	function Publish () {
+		var topic = $("#topic").val();
+		var payload = $("#payload").val();
+		mosq.publish(topic,payload,0);
+	}
+	
+	function Connect() {
+		if (connected == false) {
+			url = $("#url").val();
+			mosq.connect(url,60000);
+		}
+		else {
+			connected = false;
+			mosq.disconnect();
+		}
+	}
+		
+		
+</script>
+
+</head>
+
+<body>
+<table width="50%" border="1">
+  <tr>
+  	<td class="buttonx" id="button" onclick=Connect();>Connect</td>
+    <td class="buttony" >State</td>
+    <td id="state">?</td>
+  </tr>
+  <tr>
+    <td class="buttony">URL</td>
+    <td colspan="2"> <input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto"/ size="64"></td>
+    <tr>
+    <td class="buttonx" onclick=Subscribe();>Subscribe</td>
+    <td colspan="2"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" ></td>
+  </tr>
+   <tr>
+    <td class="buttonx" onclick=Unsubscribe();>UnSubscribe</td>
+    <td colspan="2"> <input name="" class="button" id="unsubscribe" value="/mytopic" size="64" ></td>
+  </tr>
+    <tr>
+    <td class="buttonx" onclick=Publish();>Publish</td>
+    <td> <input name="" class="button" id="topic" value="/mytopic" size="32" ></td>
+    <td> <input name="" class="button" id="payload" value="mypayload" size="32" ></td>
+  </tr>
+</table>
+<div id="container">
+        <div id="header">Received Messages</div>
+        <div id="message" onclick=ClearMsg();></div>
+    </div>   
+</body>
+</html>
