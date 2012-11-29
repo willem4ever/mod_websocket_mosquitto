@@ -15,16 +15,16 @@ tr,td {
 .buttonx {
 	height: 22px;
 	width: 100px;
-	background-color: #FC0;
+	background-color: #9CF;
 	text-align: center;
 	border-top-style: outset;
 	border-right-style: outset;
 	border-bottom-style: outset;
 	border-left-style: outset;
-	border-top-color: #FC6;
-	border-right-color: #FC6;
-	border-bottom-color: #FC6;
-	border-left-color: #FC6;
+	border-top-color: #C00;
+	border-right-color: #C00;
+	border-bottom-color: #C00;
+	border-left-color: #C00;
 	cursor: pointer;
 	float: none;
 }
@@ -45,12 +45,17 @@ tr,td {
 }
 .button {
 	background-color: #FC0;
+	width: 99%;
 	float: none;
 }
 
 div#container {
 	height: 50%;
-	width: 50%;
+	width: 850px;
+}
+
+.header {
+	background-color: #0FF;
 }
 
 div#header {
@@ -60,7 +65,6 @@ div#header {
 div#message {
 	height: 250px;
 	overflow-y: auto;
-	position: relative;
 	width: 100%;
 	background-color: #CCC;
 }
@@ -90,6 +94,7 @@ window.onload = function(){
 				$("#state").html(state);
 				connected = true;
 				$("#button").html('Disconnect');
+				localStorage.url = $("#url").val();
 			}
 			
 		};
@@ -105,9 +110,20 @@ window.onload = function(){
 			mesgcnt++;
 			var message = Date.now() + " : " + topic + " " + payload + "<br>";
 			$("#message").append(message);
-			message = "Received Messages #"+ mesgcnt;
+			message = "Received Messages #"+ mesgcnt;		
 			$("#header").html(message);
+			
+			if ($('#scroll').is(":checked")) {
+			// Scroll to bottom 
+				var intElemScrollHeight = $('#message')[0].scrollHeight;
+				$('#message').animate({scrollTop:intElemScrollHeight}, 'slow');
+			}
+			
 		}
+		
+		if (localStorage.url) $("#url").val(localStorage.url);
+		if (localStorage.subscribe) $("#subscribe").val(localStorage.subscribe);
+		if (localStorage.unsubscribe) $("#unsubscribe").val(localStorage.unsubscribe);
 	}
 
 	var url = "";
@@ -121,20 +137,22 @@ window.onload = function(){
 	function Subscribe () {
 		var topic = $("#subscribe").val();
 		var message = Date.now() + " : Subscribed to " + topic + "<br>";
-		console.log(topic);
+		//console.log(topic);
 		if (topic.length > 0) {
 			mosq.subscribe(topic,0);
 			$("#message").append(message);
+			localStorage.subscribe = topic;
 		}
 	}
 	
 	function Unsubscribe () {
 		var topic = $("#unsubscribe").val();
 		var message = Date.now() +" : Unsubscribed from " + topic + "<br>";
-		console.log(topic);
+		//console.log(topic);
 		if (topic.length > 0) {
 			mosq.unsubscribe(topic);
 			$("#message").append(message);
+			localStorage.unsubscribe = topic;
 		}
 		
 	}
@@ -161,7 +179,7 @@ window.onload = function(){
 </head>
 
 <body>
-<table width="50%" border="1">
+<table width="850px" border="1">
   <tr>
   	<td class="buttonx" id="button" onclick=Connect();>Connect</td>
     <td class="buttony" >State</td>
@@ -169,24 +187,34 @@ window.onload = function(){
   </tr>
   <tr>
     <td class="buttony">URL</td>
-    <td colspan="2"> <input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto"/ size="64"></td>
+    <td colspan="2"> <input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto" size="64"/></td>
     <tr>
     <td class="buttonx" onclick=Subscribe();>Subscribe</td>
-    <td colspan="2"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" ></td>
+    <td colspan="2"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" /></td>
   </tr>
    <tr>
     <td class="buttonx" onclick=Unsubscribe();>UnSubscribe</td>
-    <td colspan="2"> <input name="" class="button" id="unsubscribe" value="/mytopic" size="64" ></td>
+    <td colspan="2"> <input name="" class="button" id="unsubscribe" value="/mytopic" size="64" /></td>
   </tr>
     <tr>
     <td class="buttonx" onclick=Publish();>Publish</td>
-    <td> <input name="" class="button" id="topic" value="/mytopic" size="32" ></td>
-    <td> <input name="" class="button" id="payload" value="mypayload" size="32" ></td>
+    <td> <input name="" class="button" id="topic" value="/mytopic" size="32" /></td>
+    <td> <input name="" class="button" id="payload" value="mypayload" size="32" /></td>
   </tr>
 </table>
+
 <div id="container">
-        <div id="header">Received Messages</div>
-        <div id="message" onclick=ClearMsg();></div>
+
+	<table width="100%" border=0 align="left">
+  	<tr>
+    	<td width="15%" class="header">
+    	<input type="checkbox" name="scroll" id="scroll"/>
+    	Autoscroll</td>
+    	<td width="85%" class="header"><div id="header">Received Messages</div></td>
+  	</tr>
+	</table> 
+    <div id="message" onclick=ClearMsg();></div>
     </div>   
-</body>
-</html>
+
+</body
+></html>
