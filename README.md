@@ -66,7 +66,7 @@
 	$ sudo vi /etc/apache2/mods-available/websocket.load
 	---
 	LoadModule websocket_module   /usr/lib/apache2/modules/mod_websocket.so
-	LoadModule websocket_draft76_module   /usr/lib/apache2/modules/mod_websocket_draft76.
+	LoadModule websocket_draft76_module   /usr/lib/apache2/modules/mod_websocket_draft76.so
 	---
 
 	Create websocket.conf file:
