@@ -102,7 +102,7 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
         const char *protocol = server->protocol_index(server, i);
 
         if ((protocol != NULL) &&
-            (strcmp(protocol, "mqtt") == 0)) {
+            (strncmp(protocol, "mqtt",4) == 0)) {
           /* If the client can speak the protocol, set it in the response */
           server->protocol_set(server, protocol);
           break;
