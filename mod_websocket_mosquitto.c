@@ -28,6 +28,8 @@
 #include "apr_thread_proc.h"
 #include "websocket_plugin.h"
 
+#define HEADER_SIZE 4096
+
 typedef struct _MosquittoData {
   const WebSocketServer *server;
   apr_pool_t *pool;
@@ -67,21 +69,75 @@ static void* mosquitto_create_dir_conf(apr_pool_t* pool, char* x) {
 
 void* APR_THREAD_FUNC mosquitto_run(apr_thread_t *thread, void *data)
 {
-  char buffer[1024];
-  MosquittoData *dib = (MosquittoData *) data;
+	char *buffer;
+	char header[HEADER_SIZE];
+	apr_size_t bread;
+	MosquittoData *dib = (MosquittoData *) data;
+	apr_size_t pos;
+	apr_size_t value;
+	int mult;
 
-  if (dib != NULL) {
-    /* Keep sending messages as long as the connection is active */
-    while (dib->active) {
-	  apr_size_t bread=sizeof(buffer);
-      apr_socket_recv(dib->sockfd,buffer,&bread);
-      if (bread && dib->server)
-         dib->server->send(dib->server, MESSAGE_TYPE_BINARY, (unsigned char *)buffer,bread);
-     else
-		 dib->active=0;
-     }
-  }
-  return NULL;
+	if (dib != NULL) {
+		/* Keep sending messages as long as the connection is active */
+		bread = HEADER_SIZE;
+		pos = 0;
+		while (dib->active) {
+			/* Read the header */
+			value = 0;
+			mult = 1;
+			if (pos == 0) {
+				bread = HEADER_SIZE;
+				apr_socket_recv(dib->sockfd, header, &bread);
+			}
+			pos = 1;
+			if (bread && dib->server) {
+				do {
+					value += (header[pos] & 127) * mult;
+					mult *= 128;
+				} while (header[pos++] & 128);
+				value += pos;
+				if (value < HEADER_SIZE) { // short send
+					if (value <= bread) { // enough data, so send it
+						dib->server->send(dib->server, MESSAGE_TYPE_BINARY, (unsigned char *) header,value);
+						if (bread > value) memmove(header, header+value, bread-(value));
+						pos = bread - value;
+						bread -= value;
+					} else { // not enough data, get more
+						pos = bread;
+						bread = HEADER_SIZE - pos;
+						apr_socket_recv(dib->sockfd, header + pos, &bread);
+						bread += pos;
+						pos = 1;
+					}
+				} else { //long send
+					buffer = malloc(value);
+					if (buffer != NULL) {
+						memcpy(buffer, header, bread);
+						pos = 0;
+						do {
+							pos += bread;
+							bread = value - pos;
+							apr_socket_recv(dib->sockfd, buffer+pos, &bread);
+							if (bread == 0) break;
+						} while (value - (pos + bread));
+						if (bread && dib->server) {
+							dib->server->send(dib->server, MESSAGE_TYPE_BINARY, (unsigned char *) buffer,value);
+							bread = HEADER_SIZE;
+							pos = 0;
+						} else {
+							dib->active = 0;
+						}
+						free(buffer);
+					} else {
+						dib->active = 0;
+					}
+				}
+			} else {
+				dib->active = 0;
+			}
+		}
+	}
+	return NULL;
 }
 
 void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
