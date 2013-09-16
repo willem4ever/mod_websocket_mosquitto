@@ -125,7 +125,7 @@ void * CALLBACK mosquitto_on_connect(const WebSocketServer *server)
 		  request_rec *r = server->request(server);
 		  mosquitto_cfg* dir = ap_get_module_config(r->per_dir_config, &mod_websocket_mosquitto) ;
 		  
-		  int rv = apr_sockaddr_info_get(&sa,dir->broker,APR_UNSPEC,atoi(dir->port),APR_IPV6_ADDR_OK ,pool);
+		  int rv = apr_sockaddr_info_get(&sa,dir->broker,APR_UNSPEC,atoi(dir->port),APR_IPV4_ADDR_OK ,pool);
 		  if (rv)
 			  ap_log_error(APLOG_MARK, APLOG_CRIT,0,NULL,"apr_sockaddr_info_get failed #%x",rv);
 		  else
