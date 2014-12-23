@@ -30,7 +30,7 @@ tr,td {
 }
 .buttony {
 	height: 22px;
-	width: 184px;
+	width: 150px;
 	background-color: #FC0;
 	text-align: center;
 	border-top-style: outset;
@@ -89,7 +89,7 @@ window.onload = function(){
 
 		function onConnect() {
 			connected == true
-			var state = "Connected to " + $("#url").val();
+			var state = "Connected to " + $("#url").val() + " mqttVersion:" + $('#mqttVersion').find(":selected").val();
 			$("#state").html(state);
 			connected = true;
 			$("#button").html('Disconnect');
@@ -168,14 +168,12 @@ window.onload = function(){
 		var rc = 0;
 		if (connected == false) {
 			url = $("#url").val();
-
-			
 			client = new Paho.MQTT.Client(url,"mosq-client");
 			// set callback handlers
 			client.onConnectionLost = onConnectionLost;
 			client.onMessageArrived = onMessageArrived;
-			// Use mqttVersion:4 for old Version (aka the test server)
-			client.connect({mqttVersion:4,onSuccess:onConnect});
+			var mqttVersion = $('#mqttVersion').find(":selected").val();
+			client.connect({mqttVersion:Number(mqttVersion),onSuccess:onConnect});
 		}
 		else {
 			connected = false;
@@ -197,7 +195,11 @@ window.onload = function(){
 </tr>
 <tr>
 <td class="buttony">URL</td>
-<td colspan="2"> <input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto" size="64"/></td>
+<td class="buttony"><select id="mqttVersion">
+<option value="3">mqttVersion 3</option>
+<option value="4">mqttVersion 4</option>
+</select></td>
+<td><input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto" size="64"/></td>
 <tr>
 <td class="buttonx" onclick=Subscribe();>Subscribe</td>
 <td colspan="2"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" /></td>
