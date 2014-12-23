@@ -89,7 +89,7 @@ window.onload = function(){
 
 		function onConnect() {
 			connected == true
-			var state = "Connected to " + "ws://" + host + ":" + port + path;
+			var state = "Connected to " + $("#url").val();
 			$("#state").html(state);
 			connected = true;
 			$("#button").html('Disconnect');
@@ -167,11 +167,10 @@ window.onload = function(){
 	function Connect() {
 		var rc = 0;
 		if (connected == false) {
-			host = $("#host").val();
-			port = $("#port").val();
-			path = $("#path").val();
+			url = $("#url").val();
+
 			
-			client = new Paho.MQTT.Client(host,Number(port), path,"mosq-client");
+			client = new Paho.MQTT.Client(url,"mosq-client");
 			// set callback handlers
 			client.onConnectionLost = onConnectionLost;
 			client.onMessageArrived = onMessageArrived;
@@ -191,43 +190,40 @@ window.onload = function(){
 
 <body>
 <table width="850px" border="1">
-  <tr>
-  	<td class="buttonx" id="button" onclick=Connect();>Connect</td>
-    <td class="buttony" >State</td>
-    <td colspan="2" id="state">?</td>
-  </tr>
-  <tr>
-    <td class="buttony">URL</td>
-    <td><input name="" class="button" id="host" value="vme-1.automation-du.de" size="64"/></td>
-    <td><input name="" class="button" id="port" value="80" size="4"/></td>
-    <td><input name="" class="button" id="path" value="/mosquitto" size="16"/></td>
-    <tr>
-    <td class="buttonx" onclick=Subscribe();>Subscribe</td>
-    <td colspan="3"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" /></td>
-  </tr>
-   <tr>
-    <td class="buttonx" onclick=Unsubscribe();>UnSubscribe</td>
-    <td colspan="3"> <input name="" class="button" id="unsubscribe" value="/mytopic" size="64" /></td>
-  </tr>
-    <tr>
-    <td class="buttonx" onclick=Publish();>Publish</td>
-    <td> <input name="" class="button" id="topic" value="/mytopic" size="16" /></td>
-    <td colspan="2"> <input name="" class="button" id="payload" value="mypayload" size="32" /></td>
-  </tr>
+<tr>
+<td class="buttonx" id="button" onclick=Connect();>Connect</td>
+<td class="buttony" >State</td>
+<td id="state">?</td>
+</tr>
+<tr>
+<td class="buttony">URL</td>
+<td colspan="2"> <input name="" class="button" id="url" value="ws://vme-1.automation-du.de/mosquitto" size="64"/></td>
+<tr>
+<td class="buttonx" onclick=Subscribe();>Subscribe</td>
+<td colspan="2"> <input name="" class="button" id="subscribe" value="/mytopic" size="64" /></td>
+</tr>
+<tr>
+<td class="buttonx" onclick=Unsubscribe();>UnSubscribe</td>
+<td colspan="2"> <input name="" class="button" id="unsubscribe" value="/mytopic" size="64" /></td>
+</tr>
+<tr>
+<td class="buttonx" onclick=Publish();>Publish</td>
+<td> <input name="" class="button" id="topic" value="/mytopic" size="32" /></td>
+<td> <input name="" class="button" id="payload" value="mypayload" size="32" /></td>
+</tr>
 </table>
 
 <div id="container">
 
-	<table width="100%" border=0 align="left">
-  	<tr>
-    	<td width="15%" class="header">
-    	<input type="checkbox" name="scroll" id="scroll"/>
-    	Autoscroll</td>
-    	<td width="85%" class="header"><div id="header" onclick=ClearMsg();>Received Messages</div></td>
-  	</tr>
-	</table> 
-    <div id="message"></div>
-    </div>   
+<table width="100%" border=0 align="left">
+<tr>
+<td width="15%" class="header">
+<input type="checkbox" name="scroll" id="scroll"/>
+Autoscroll</td>
+<td width="85%" class="header"><div id="header" onclick=ClearMsg();>Received Messages</div></td>
+</tr>
+</table>
+<div id="message"></div>
+</div>
 
-</body
-></html>
+</body></html>
