@@ -84,7 +84,7 @@
 	---
 
 	Fix module file permissions:
-	$ ls /usr/lib/apache2/modules
+	$ ll /usr/lib/apache2/modules
 	-rw-r--r-- 1 root root   14344 2012-02-14 20:59 mod_usertrack.so
 	-rw-r--r-- 1 root root   10240 2012-02-14 20:59 mod_version.so
 	-rw-r--r-- 1 root root   10248 2012-02-14 20:59 mod_vhost_alias.so
